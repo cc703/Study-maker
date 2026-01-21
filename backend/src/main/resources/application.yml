@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=learning_planner;encrypt=true;trustServerCertificate=true;sendTimeAsDatetime=false
+    username: sa
+    password: gdut
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.planner.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    jdbc-type-for-null: NULL
+
+logging:
+  level:
+    com.planner: debug

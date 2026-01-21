@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.planner.mapper.TaskMapper">
+    
+    <resultMap id="TaskResultMap" type="com.planner.entity.Task">
+        <id property="id" column="id"/>
+        <result property="taskName" column="task_name"/>
+        <result property="planId" column="plan_id"/>
+        <result property="stageId" column="stage_id"/>
+        <result property="taskType" column="task_type"/>
+        <result property="priority" column="priority"/>
+        <result property="estimatedTime" column="estimated_time"/>
+        <result property="deadline" column="deadline"/>
+        <result property="status" column="status"/>
+        <result property="actualTime" column="actual_time"/>
+        <result property="remark" column="remark"/>
+        <result property="scheduledDate" column="scheduled_date"/>
+        <result property="completedTime" column="completed_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="planName" column="plan_name"/>
+        <result property="planColor" column="plan_color"/>
+        <result property="stageName" column="stage_name"/>
+    </resultMap>
+    
+    <select id="findByCondition" resultMap="TaskResultMap">
+        SELECT t.*, p.plan_name, p.color as plan_color, s.stage_name
+        FROM task t
+        LEFT JOIN [plan] p ON t.plan_id = p.id
+        LEFT JOIN stage s ON t.stage_id = s.id
+        <where>
+            <if test="planId != null">
+                AND t.plan_id = #{planId}
+            </if>
+            <if test="stageId != null">
+                AND t.stage_id = #{stageId}
+            </if>
+            <if test="taskType != null and taskType != ''">
+                AND t.task_type = #{taskType}
+            </if>
+            <if test="status != null and status != ''">
+                AND t.status = #{status}
+            </if>
+            <if test="scheduledDate != null">
+                AND t.scheduled_date = #{scheduledDate}
+            </if>
+            <if test="startDate != null and endDate != null">
+                AND t.scheduled_date BETWEEN #{startDate} AND #{endDate}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND t.task_name LIKE '%' + #{keyword} + '%'
+            </if>
+        </where>
+        ORDER BY t.priority DESC, t.deadline, t.create_time DESC
+        OFFSET #{pageNum} ROWS FETCH NEXT #{pageSize} ROWS ONLY
+    </select>
+    
+    <select id="countByCondition" resultType="Long">
+        SELECT COUNT(*)
+        FROM task t
+        <where>
+            <if test="planId != null">
+                AND t.plan_id = #{planId}
+            </if>
+            <if test="stageId != null">
+                AND t.stage_id = #{stageId}
+            </if>
+            <if test="taskType != null and taskType != ''">
+                AND t.task_type = #{taskType}
+            </if>
+            <if test="status != null and status != ''">
+                AND t.status = #{status}
+            </if>
+            <if test="scheduledDate != null">
+                AND t.scheduled_date = #{scheduledDate}
+            </if>
+            <if test="startDate != null and endDate != null">
+                AND t.scheduled_date BETWEEN #{startDate} AND #{endDate}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND t.task_name LIKE '%' + #{keyword} + '%'
+            </if>
+        </where>
+    </select>
+    
+    <select id="getPlanStats" resultType="com.planner.vo.PlanStatVO">
+        SELECT 
+            p.id as planId,
+            p.plan_name as planName,
+            p.color,
+            p.priority,
+            COUNT(t.id) as totalTasks,
+            SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) as completedTasks,
+            ROUND(SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id), 0), 2) as completionRate,
+            COALESCE(SUM(t.actual_time), 0) as totalTime
+        FROM [plan] p
+        LEFT JOIN task t ON p.id = t.plan_id
+        WHERE p.status = 1
+        GROUP BY p.id, p.plan_name, p.color, p.priority
+        ORDER BY p.priority DESC
+    </select>
+    
+    <select id="getWeeklyStats" resultType="com.planner.vo.DailyStatVO">
+        SELECT 
+            t.scheduled_date as date,
+            COUNT(t.id) as totalTasks,
+            SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) as completedTasks,
+            COALESCE(SUM(t.actual_time), 0) as totalTime
+        FROM task t
+        WHERE t.scheduled_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY t.scheduled_date
+        ORDER BY t.scheduled_date
+    </select>
+
+    <select id="getDailyStats" resultType="com.planner.vo.DailyStatVO">
+        SELECT 
+            t.scheduled_date as date,
+            COUNT(t.id) as totalTasks,
+            SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) as completedTasks,
+            COALESCE(SUM(t.actual_time), 0) as totalTime
+        FROM task t
+        WHERE t.scheduled_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY t.scheduled_date
+        ORDER BY t.scheduled_date
+    </select>
+    
+</mapper>
